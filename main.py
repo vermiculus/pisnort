@@ -24,7 +24,8 @@ if __name__ == '__main__':
     print 'Welcome to PiSnort!'
     play_sound('system/welcome.wav')
 
-    state=object()
+    class State: pass
+    state=State()
     state.testing = True
     state.on = False
     state.led_on = True
