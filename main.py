@@ -7,8 +7,6 @@ import random                   # For randomizing sound files
 import time                     # To delay sound playing
 import logging
 
-gpio.setmode(gpio.BOARD)
-
 import logging.config
 logging.config.fileConfig('logging.conf')
 
@@ -32,26 +30,27 @@ if __name__ == '__main__':
     state.button_depressed = False
     state.motion_detected = False
 
+    gpio.setmode(gpio.BCM)
+    
     pins = {
-        'LED power':    gu.Pin(7,             gpio.OUT, gpio.LOW),
-        'PIR power':    gu.Pin(gu.Pin.VOLT,   gpio.OUT, gpio.HIGH),
-        'Button power': gu.Pin(gu.Pin.VOLT,   gpio.OUT, gpio.HIGH),
-        'PIR Signal':   gu.Pin(25,            gpio.IN),
-        'Button in':    gu.Pin(21,            gpio.IN),
-        'Button out':   gu.Pin(gu.Pin.GROUND, gpio.IN)
-        # will 'button out' fry coming right from volt?
+        'LED power':    gu.Pin(4,           gpio.OUT, gpio.LOW),
+        'PIR power':    gu.Pin(gu.Pin.VOLT, gpio.OUT, gpio.HIGH),
+        'Button power': gu.Pin(gu.Pin.VOLT, gpio.OUT, gpio.HIGH),
+        'PIR Signal':   gu.Pin(2,           gpio.IN),
+        'Button in':    gu.Pin(8,           gpio.IN),
+        'Button out':   gu.Pin(7,           gpio.IN)
       }
     
     gu.setup_all(pins)
 
-    snorts = {('record2snort2.wav',     'some criterion'),
-              ('record3snort1.wav',     'some criterion'),
-              ('record3snort2.wav',     'some criterion'),
-              ('record4snort1.wav',     'some criterion'),
-              ('record4snort2.wav',     'some criterion'),
-              ('recorded snort1-3.wav', 'some criterion'),
-              ('recorded snort1.wav',   'some criterion'),
-              ('recorded snort2.wav',   'some criterion')}
+    snorts = {'record2snort2.wav':     ('some criterion'),
+              'record3snort1.wav':     ('some criterion'),
+              'record3snort2.wav':     ('some criterion'),
+              'record4snort1.wav':     ('some criterion'),
+              'record4snort2.wav':     ('some criterion'),
+              'recorded snort1-3.wav': ('some criterion'),
+              'recorded snort1.wav':   ('some criterion'),
+              'recorded snort2.wav':   ('some criterion')}
   
     log.info('Beginning main loop.')
     try:
@@ -93,7 +92,7 @@ if __name__ == '__main__':
                 play_sound('system/diagnostic.wav')
                 state.testing = False
             elif state.on and state.motion_detected:
-                choices = [snorts[key][0] for key in snorts]
+                choices = [key for key in snorts if bool(snorts[key][0])]
                 soundfile = random.choice(choices)
                 log.info('Waiting ten seconds to play sound.')
                 time.sleep(10)

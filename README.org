@@ -16,8 +16,6 @@
   import time                     # To delay sound playing
   import logging
 
-  gpio.setmode(gpio.BOARD)
-  
   <<setup logging>>
   
   <<sound-playing logic>>
@@ -71,7 +69,7 @@ the file, then wait another five minutes to avoid a double alarm.
 :noweb-ref: choose a random sound file to play
 :END:
 #+BEGIN_SRC python
-  choices = [snorts[key][0] for key in snorts]
+  choices = [key for key in snorts if bool(snorts[key][0])]
   soundfile = random.choice(choices)
 #+END_SRC
 
@@ -88,14 +86,15 @@ These are all of the pins used in the circuitry.  Explicit ground
 wires are not listed; if something is missing, just complete the
 circuit.  Refer to the Fritzing diagram if you're unsure.
 #+BEGIN_SRC python
+  gpio.setmode(gpio.BCM)
+  
   pins = {
-      'LED power':    gu.Pin(7,             gpio.OUT, gpio.LOW),
-      'PIR power':    gu.Pin(gu.Pin.VOLT,   gpio.OUT, gpio.HIGH),
-      'Button power': gu.Pin(gu.Pin.VOLT,   gpio.OUT, gpio.HIGH),
-      'PIR Signal':   gu.Pin(25,            gpio.IN),
-      'Button in':    gu.Pin(21,            gpio.IN),
-      'Button out':   gu.Pin(gu.Pin.GROUND, gpio.IN)
-      # will 'button out' fry coming right from volt?
+      'LED power':    gu.Pin(4,           gpio.OUT, gpio.LOW),
+      'PIR power':    gu.Pin(gu.Pin.VOLT, gpio.OUT, gpio.HIGH),
+      'Button power': gu.Pin(gu.Pin.VOLT, gpio.OUT, gpio.HIGH),
+      'PIR Signal':   gu.Pin(2,           gpio.IN),
+      'Button in':    gu.Pin(8,           gpio.IN),
+      'Button out':   gu.Pin(7,           gpio.IN)
     }
   
   gu.setup_all(pins)
@@ -110,14 +109,14 @@ should be organized as such.  This is not something I am trained to do
 (and I neither recorded nor named these files), so I'm waiting on the
 project manager to do this. They all sound like bloody murdur to me.
 #+BEGIN_SRC python
-  snorts = {('record2snort2.wav',     'some criterion'),
-            ('record3snort1.wav',     'some criterion'),
-            ('record3snort2.wav',     'some criterion'),
-            ('record4snort1.wav',     'some criterion'),
-            ('record4snort2.wav',     'some criterion'),
-            ('recorded snort1-3.wav', 'some criterion'),
-            ('recorded snort1.wav',   'some criterion'),
-            ('recorded snort2.wav',   'some criterion')}
+  snorts = {'record2snort2.wav':     ('some criterion'),
+            'record3snort1.wav':     ('some criterion'),
+            'record3snort2.wav':     ('some criterion'),
+            'record4snort1.wav':     ('some criterion'),
+            'record4snort2.wav':     ('some criterion'),
+            'recorded snort1-3.wav': ('some criterion'),
+            'recorded snort1.wav':   ('some criterion'),
+            'recorded snort2.wav':   ('some criterion')}
 #+END_SRC
 
 The actual sound files aren't included in the project as they are
