@@ -91,6 +91,7 @@ if __name__ == '__main__':
                     time.sleep(1)
                 print 'Diagnostic complete.'
                 play_sound('system/diagnostic.wav')
+                state.testing = False
             elif state.on and state.motion_detected:
                 choices = [snorts[key][0] for key in snorts]
                 soundfile = random.choice(choices)

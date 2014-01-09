@@ -156,6 +156,7 @@ to play and then play it.
 #+BEGIN_SRC python
   if state.testing:
       <<testing logic>>
+      state.testing = False
   elif state.on and state.motion_detected:
       <<play a random sound file>>
 #+END_SRC
