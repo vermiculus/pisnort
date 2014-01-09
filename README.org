@@ -307,6 +307,7 @@ expanded here for clarity.)
 :END:
 #+BEGIN_SRC python
   import RPi.GPIO
+  <<setup logging>>
 #+END_SRC
 *** Define =Pin= Class
 :PROPERTIES:
@@ -339,9 +340,9 @@ expanded here for clarity.)
 :END:
 #+BEGIN_SRC python
   def read_pin(pin):
-      assert pin.MODE is RPi.GPIO.IN
+      assert pin.mode is RPi.GPIO.IN
   
-      return Rpi.GPIO.read(pin.number)
+      return RPi.GPIO.read(pin.number)
 #+END_SRC
 *** Toggling Pins
 :PROPERTIES:
@@ -364,7 +365,7 @@ expanded here for clarity.)
 #+BEGIN_SRC python
   def setup_all(pins):
       for pin in pins.values():
-          if pin in [self.VOLT, self.GROUND]:
+          if pin in [Pin.VOLT, Pin.GROUND]:
               continue
   
           assert pin.mode in [RPi.GPIO.IN, RPi.GPIO.OUT]

@@ -1,5 +1,7 @@
 
 import RPi.GPIO
+import logging.config
+logging.config.fileConfig('logging.conf')
 
 class Pin:
     VOLT = 1
@@ -17,9 +19,9 @@ def set_pin(pin, state):
     RPi.GPIO.output(pin.number, pin.state)
 
 def read_pin(pin):
-    assert pin.MODE is RPi.GPIO.IN
+    assert pin.mode is RPi.GPIO.IN
 
-    return Rpi.GPIO.read(pin.number)
+    return RPi.GPIO.read(pin.number)
 
 def toggle(pin):
     assert pin.mode is RPi.GPIO.OUT
@@ -32,7 +34,7 @@ def toggle(pin):
 
 def setup_all(pins):
     for pin in pins.values():
-        if pin in [self.VOLT, self.GROUND]:
+        if pin in [Pin.VOLT, Pin.GROUND]:
             continue
 
         assert pin.mode in [RPi.GPIO.IN, RPi.GPIO.OUT]
