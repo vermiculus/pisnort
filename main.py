@@ -1,3 +1,4 @@
+#!/usr/bin/sudo python
 import gpioutil
 import RPi.GPIO as gpio
 
