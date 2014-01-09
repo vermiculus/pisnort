@@ -30,9 +30,11 @@ def play_sound(relative_path):
     subprocess.call(["aplay",  "sounds/{!s}".format(relative_path)])
 
 state={}
+state.testing = True
 state.on = False
 state.led_on = True
 state.button_depressed = False
+state.motion_detected = False
 
 def update(state):
     log = logging.getLogger('root')
@@ -48,6 +50,14 @@ def update(state):
     else:
         state.button_depressed = False
 
+    # Check for any input from the PIR.  If motion is detected, set
+    # the appropriate flag.  (This can easily be collapsed to one
+    # line, but is expanded here for clarity.)
+    if gu.read(pins['PIR Signal']):
+        log.info('Motion detected!')
+        state.motion_detected = True
+    else:
+        state.motion_detected = False
 
     log.debug('Updating state... Done.')
 
@@ -88,6 +98,14 @@ def loop(state):
         if state.button_depressed:
             toggle(state)
 
+        if state.motion_detected:
+            choices = [snorts[key][0] for key in snorts] # can use lambdas here
+            soundfile = random.choice(choices)
+            log.info('Waiting ten seconds to play sound.')
+            time.sleep(10)
+            play_sound(soundfile)
+            log.info('Waiting five minutes to continue execution')
+            time.sleep(600)     # Sleep for five minutes to avoid setting off the thing twice.
 
 if __name__ == '__main__':
     log = logging.getLogger('root')
