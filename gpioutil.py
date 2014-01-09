@@ -1,6 +1,5 @@
-import RPi.GPIO
 
-RPi.GPIO.setmode(RPi.GPIO.BOARD)
+import RPi.GPIO
 
 class Pin:
     VOLT = 1
@@ -11,6 +10,25 @@ class Pin:
         self.state = state
     def __int__(self):
         return self.number
+
+def set_pin(pin, state):
+    assert pin.mode is RPi.GPIO.OUT
+    pin.state = state
+    RPi.GPIO.output(pin.number, pin.state)
+
+def read_pin(pin):
+    assert pin.MODE is RPi.GPIO.IN
+
+    return Rpi.GPIO.read(pin.number)
+
+def toggle(pin):
+    assert pin.mode is RPi.GPIO.OUT
+    if pin.state is RPi.GPIO.HIGH:
+        set_pin(pin, RPi.GPIO.LOW)
+    elif pin.state is RPi.GPIO.LOW:
+        set_pin(pin, RPi.GPIO.HIGH)
+    else:
+        raise Exception('What happened?  Pin {} is neither HIGH nor LOW.'.format(pin))
 
 def setup_all(pins):
     for pin in pins.values():
@@ -28,17 +46,3 @@ def setup_all(pins):
         if pin.mode is RPi.GPIO.OUT:
             print '\t\tSetting to {}'.format('HIGH' if pin.state is RPi.GPIO.HIGH else 'LOW')
             RPi.GPIO.output(pin.number, pin.state)
-
-def set_pin(pin, state):
-    assert pin.mode is RPi.GPIO.OUT
-    pin.state = state
-    RPi.GPIO.output(pin.number, pin.state)
-
-def toggle(pin):
-    assert pin.mode is RPi.GPIO.OUT
-    if pin.state is RPi.GPIO.HIGH:
-        set_pin(pin, RPi.GPIO.LOW)
-    elif pin.state is RPi.GPIO.LOW:
-        set_pin(pin, RPi.GPIO.HIGH)
-    else:
-        raise Exception('What happened?  Pin {} is neither HIGH nor LOW.'.format(pin))
