@@ -51,23 +51,24 @@
 
 * The Meat
 :PROPERTIES:
-:noweb-ref: run main logic
+:noweb-ref: play a random sound file
 :END:
+Choose a random sound file to play and then wait ten seconds.  Play
+the file, then wait another five minutes to avoid a double alarm.
 #+BEGIN_SRC python
-  <<update state>>
-        
-  if state.button_depressed:
-      <<toggle state>>
-      
-  if state.motion_detected:
-      choices = [snorts[key][0] for key in snorts] # can use lambdas here
-      soundfile = random.choice(choices)
-      log.info('Waiting ten seconds to play sound.')
-      time.sleep(10)
-      play_sound(soundfile)
-      log.info('Waiting five minutes to continue execution')
-      time.sleep(600)     # Sleep for five minutes to avoid setting off the thing twice.
+  choices = [snorts[key][0] for key in snorts]
+  soundfile = random.choice(choices)
+  log.info('Waiting ten seconds to play sound.')
+  time.sleep(10)
+  play_sound(soundfile)
+  log.info('Waiting five minutes to continue execution')
+  time.sleep(600)
 #+END_SRC
+
+** TODO Implement lambda filtering of recordings
+I seem to remember a requirement being the ability to play /certain/
+sounds.  I'm not sure of the details of this requirement, but lambdas
+can be used here (using the =[i for i in [...] if f(i)]= construction).
 
 * Define Pins
 :PROPERTIES:
@@ -117,10 +118,25 @@ won't benefit from version control.
 :PROPERTIES:
 :noweb-ref: run loop
 :END:
+
+First, we need to update the internal state so we know we have current
+information.  This will intelligently update properties such as
+=button_depressed= and =motion_detected= so we can use them later.
+
+If the button is depressed, we want to toggle the state of the device.
+Press once and the device should turn on.  Press once more and the
+device should turn off.
+
+It should be noted that the device won't /actually/ turn off; it will
+merely stop looking for motion.  (
 #+BEGIN_SRC python
   log = logging.getLogger('root')
   log.debug('Executing loop')
     
+  <<update state>>
+
+  if state.button_depressed:
+      <<toggle state>>
     
   if state.testing:
       for i in range(5):
@@ -129,8 +145,8 @@ won't benefit from version control.
           time.sleep(1)
       print 'Playing siren'
       play_sound("police_s.wav")
-  elif state.on:
-      <<run main logic>>
+  elif state.on and state.motion_detected:
+      <<play a random sound file>>
 #+END_SRC
 
 * Playing a Sound
@@ -152,7 +168,7 @@ ensure that your speaker is hooked up to the Pi over 3.5mm.
 :noweb-ref: define state
 :END:
 #+BEGIN_SRC python 
-  state={}
+  state=object()
   state.testing = True
   state.on = False
   state.led_on = True

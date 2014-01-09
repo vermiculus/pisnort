@@ -24,7 +24,7 @@ if __name__ == '__main__':
     print 'Welcome to PiSnort!'
     play_sound("welcome.wav")
 
-    state={}
+    state=object()
     state.testing = True
     state.on = False
     state.led_on = True
@@ -58,6 +58,44 @@ if __name__ == '__main__':
             log = logging.getLogger('root')
             log.debug('Executing loop')
               
+            log.debug('Updating state...')
+              
+            # Check for changes in button state.  This logic should allow the
+            # system to manage a toggle on/off button for the system state
+            # using the momentary latch provided by the button.
+            if gu.read_pin(pins['Button in']):
+                if not state.button_depressed:
+                    log.debug('Caught button state change.')
+                    state.button_depressed = True
+            else:
+                state.button_depressed = False
+              
+            # Check for any input from the PIR.  If motion is detected, set
+            # the appropriate flag.  (This can easily be collapsed to one
+            # line, but is expanded here for clarity.)
+            if gu.read_pin(pins['PIR Signal']):
+                log.info('Motion detected!')
+                state.motion_detected = True
+            else:
+                state.motion_detected = False
+              
+            log.debug('Updating state... Done.')
+            
+            if state.button_depressed:
+                log = logging.getLogger('root')
+                log.debug('Toggling state...')
+                  
+                if state.on:
+                    log.debug('Turning LED OFF')
+                    gu.set_pin(pins['LED power'], gpio.LOW)
+                    play_sound("deactivate.wav")
+                else:
+                    log.debug('Turning LED ON')
+                    gu.set_pin(pins['LED power'], gpio.HIGH)
+                    play_sound("activate.wav")
+                  
+                state.on = not state.on
+                log.debug('Toggling state... Done.')
               
             if state.testing:
                 for i in range(5):
@@ -66,54 +104,14 @@ if __name__ == '__main__':
                     time.sleep(1)
                 print 'Playing siren'
                 play_sound("police_s.wav")
-            elif state.on:
-                log.debug('Updating state...')
-                  
-                # Check for changes in button state.  This logic should allow the
-                # system to manage a toggle on/off button for the system state
-                # using the momentary latch provided by the button.
-                if gu.read_pin(pins['Button in']):
-                    if not state.button_depressed:
-                        log.debug('Caught button state change.')
-                        state.button_depressed = True
-                else:
-                    state.button_depressed = False
-                  
-                # Check for any input from the PIR.  If motion is detected, set
-                # the appropriate flag.  (This can easily be collapsed to one
-                # line, but is expanded here for clarity.)
-                if gu.read_pin(pins['PIR Signal']):
-                    log.info('Motion detected!')
-                    state.motion_detected = True
-                else:
-                    state.motion_detected = False
-                  
-                log.debug('Updating state... Done.')
-                      
-                if state.button_depressed:
-                    log = logging.getLogger('root')
-                    log.debug('Toggling state...')
-                      
-                    if state.on:
-                        log.debug('Turning LED OFF')
-                        gu.set_pin(pins['LED power'], gpio.LOW)
-                        play_sound("deactivate.wav")
-                    else:
-                        log.debug('Turning LED ON')
-                        gu.set_pin(pins['LED power'], gpio.HIGH)
-                        play_sound("activate.wav")
-                      
-                    state.on = not state.on
-                    log.debug('Toggling state... Done.')
-                    
-                if state.motion_detected:
-                    choices = [snorts[key][0] for key in snorts] # can use lambdas here
-                    soundfile = random.choice(choices)
-                    log.info('Waiting ten seconds to play sound.')
-                    time.sleep(10)
-                    play_sound(soundfile)
-                    log.info('Waiting five minutes to continue execution')
-                    time.sleep(600)     # Sleep for five minutes to avoid setting off the thing twice.
+            elif state.on and state.motion_detected:
+                choices = [snorts[key][0] for key in snorts]
+                soundfile = random.choice(choices)
+                log.info('Waiting ten seconds to play sound.')
+                time.sleep(10)
+                play_sound(soundfile)
+                log.info('Waiting five minutes to continue execution')
+                time.sleep(600)
     except KeyboardInterrupt:
         log.info('Process ended with C-c C-c.')
         print '\n\nCaught SIGINT'
