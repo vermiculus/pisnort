@@ -21,6 +21,20 @@ pins = {
     # will 'button out' fry coming right from volt?
     }
 
+# Trusted sources say these are mixed squirrel and deer sounds.  They
+# should be organized as such.  This is not something I am trained to
+# do (and I neither recorded nor named these files), so I'm waiting on
+# the project manager to do this. They all sound like bloody murdur to
+# me.
+snorts = {('record2snort2.wav',     'some criterion'),
+          ('record3snort1.wav',     'some criterion'),
+          ('record3snort2.wav',     'some criterion'),
+          ('record4snort1.wav',     'some criterion'),
+          ('record4snort2.wav',     'some criterion'),
+          ('recorded snort1-3.wav', 'some criterion'),
+          ('recorded snort1.wav',   'some criterion'),
+          ('recorded snort2.wav',   'some criterion')}
+
 gu.setup_all(pins)
 
 
