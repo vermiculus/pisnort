@@ -3,7 +3,9 @@ import RPi.GPIO
 RPi.GPIO.setmode(RPi.GPIO.BOARD)
 
 class Pin:
-    def __init__(self, number, mode, state):
+    VOLT = 1
+    GROUND = 0
+    def __init__(self, number, mode, state=None):
         self.number = number
         self.mode = mode
         self.state = state
@@ -12,6 +14,9 @@ class Pin:
 
 def setup_all(pins):
     for pin in pins.values():
+        if pin in [self.VOLT, self.GROUND]:
+            continue
+
         assert pin.mode in [RPi.GPIO.IN, RPi.GPIO.OUT]
         assert pin.state in [RPi.GPIO.HIGH, RPi.GPIO.LOW, None]
         if pin.mode is RPi.GPIO.IN:
