@@ -164,11 +164,9 @@ to play and then play it.
 :PROPERTIES:
 :noweb-ref: testing logic
 :END:
-Toggle the LED five times (note that it will be in the copmlementary
-state relative to its starting state), waiting a second between each.
-Play a WAV file.
+Toggle the LED ten times, waiting a second between each.
 #+BEGIN_SRC python
-  for i in range(5):
+  for i in range(10):
       print 'Toggling LED on pin {}'.format(pins['LED power'].number)
       gu.toggle(pins['LED power'])
       time.sleep(1)
@@ -343,7 +341,7 @@ expanded here for clarity.)
   def read_pin(pin):
       assert pin.mode is RPi.GPIO.IN
   
-      return RPi.GPIO.read(pin.number)
+      return RPi.GPIO.input(pin.number)
 #+END_SRC
 *** Toggling Pins
 :PROPERTIES:
@@ -366,7 +364,7 @@ expanded here for clarity.)
 #+BEGIN_SRC python
   def setup_all(pins):
       for pin in pins.values():
-          if pin in [Pin.VOLT, Pin.GROUND]:
+          if pin.number in [Pin.VOLT, Pin.GROUND]:
               continue
   
           assert pin.mode in [RPi.GPIO.IN, RPi.GPIO.OUT]

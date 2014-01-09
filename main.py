@@ -85,7 +85,7 @@ if __name__ == '__main__':
                 state.on = not state.on
                 log.debug('Toggling state... Done.')
             if state.testing:
-                for i in range(5):
+                for i in range(10):
                     print 'Toggling LED on pin {}'.format(pins['LED power'].number)
                     gu.toggle(pins['LED power'])
                     time.sleep(1)

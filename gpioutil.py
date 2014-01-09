@@ -21,7 +21,7 @@ def set_pin(pin, state):
 def read_pin(pin):
     assert pin.mode is RPi.GPIO.IN
 
-    return RPi.GPIO.read(pin.number)
+    return RPi.GPIO.input(pin.number)
 
 def toggle(pin):
     assert pin.mode is RPi.GPIO.OUT
@@ -34,7 +34,7 @@ def toggle(pin):
 
 def setup_all(pins):
     for pin in pins.values():
-        if pin in [Pin.VOLT, Pin.GROUND]:
+        if pin.number in [Pin.VOLT, Pin.GROUND]:
             continue
 
         assert pin.mode in [RPi.GPIO.IN, RPi.GPIO.OUT]
