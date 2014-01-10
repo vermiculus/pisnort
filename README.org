@@ -643,7 +643,3 @@ cooperate with Cornell University in asserting and available
 defenses.
 
 
-
-# Local Variables:
-# python-indent-offset: 4
-# End:
