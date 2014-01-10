@@ -16,7 +16,7 @@
   <<sound-playing logic>>
   
   <<process management>>
-
+  
   <<handle exit logic>>
   
   if __name__ == '__main__':
@@ -36,13 +36,12 @@
           while True:
               <<run loop>>
       except KeyboardInterrupt:
-          print '\n\nCaught SIGINT'
           log.info('Process ended with C-c.')
   
-      print 'Exiting.'
       log.info('Cleaning up GPIO...')
       gpio.cleanup()
       log.info('Cleaning up GPIO... Done.')
+      log.info('Program exit.')
 #+END_SRC
 
 * Exit Logic
@@ -52,6 +51,7 @@
 #+BEGIN_SRC python
   import atexit
   atexit.register(kill_child_processes)
+  atexit.register(logging.shutdown)
 #+END_SRC
 
 * Process Management
@@ -64,18 +64,22 @@
   global child_processes
   child_processes = set()
   
-  def start_process(cmd):
+  def start_process(cmd, purpose=None):
       child = subprocess.Popen(cmd)
+      child.snort_purpose = purpose
       child_processes.add(child)
   
   def gc_processes():
       for child in list(child_processes):
           child.poll()
           if child.returncode is not None:
-              log.debug('Removing process %d from the set.')
+              log.debug('Removing process %d from the set.', child.pid)
               child_processes.remove(child)
               if child.returncode is not 0:
-                  log.error('Process %d ended abnormally; exit code %d', child.pid, child.returncode)
+                  log.error('Process %d ended abnormally; exit code %d; purpose: %s',
+                            child.pid,
+                            child.returncode,
+                            child.snort_purpose)
   
   def kill_child_processes():
       gc_processes()
@@ -167,7 +171,7 @@ decently large and won't benefit from version control.
 :noweb-ref: run loop
 :END:
 #+BEGIN_SRC python
-  log.debug('Executing loop')
+  log.log(0, 'Executing loop')
 #+END_SRC
 
 First, we need to update the internal state so we know we have current
@@ -182,7 +186,7 @@ Press once and the device should turn on.  Press once more and the
 device should turn off.
 #+BEGIN_SRC python
   if state.button_depressed:
-      <<toggle state>>
+      pass#<<toggle state>>
 #+END_SRC
 It should be noted that the device won't /actually/ turn off; it will
 merely stop looking for motion.
@@ -206,12 +210,13 @@ to play and then play it.
 :END:
 Toggle the LED ten times, waiting a second between each.
 #+BEGIN_SRC python
-  for i in range(10):
-      print 'Toggling LED on pin {}'.format(pins['LED power'].number)
+  log.info('Running diagnostic...')
+  for i in range(4):
+      log.debug('Toggling LED on pin {}'.format(pins['LED power'].number))
       gu.toggle(pins['LED power'])
       time.sleep(1)
-  print 'Diagnostic complete.'
   play_sound('system/diagnostic.wav')
+  log.info('Running diagnostic... Done')
 #+END_SRC
 * Playing a Sound
 :PROPERTIES:
@@ -224,7 +229,7 @@ ensure that your speaker is hooked up to the Pi over 3.5mm.
   def play_sound(relative_path):
       log = logging.getLogger('sounds')
       log.info('Playing sound: "%s"', relative_path)
-      start_process(['aplay', '--quiet', 'sounds/{!s}'.format(relative_path)])
+      start_process(['mplayer', '-msglevel', 'all=-1', 'sounds/{!s}'.format(relative_path)], 'Play sound {}'.format(relative_path))
 #+END_SRC
 
 * Keeping State
@@ -234,11 +239,11 @@ ensure that your speaker is hooked up to the Pi over 3.5mm.
 #+BEGIN_SRC python 
   class State: pass
   state=State()
-  state.testing               = True
-  state.on                    = False
-  state.button_depressed      = False
-  state.button_depressed__old = True
-  state.motion_detected       = False
+  state.testing              = True
+  state.on                   = False
+  state.button_depressed     = False
+  state.button_depressed_old = True
+  state.motion_detected      = False
 #+END_SRC
 
 * Reading a New State
@@ -246,19 +251,19 @@ ensure that your speaker is hooked up to the Pi over 3.5mm.
 :noweb-ref: update state
 :END:
 #+BEGIN_SRC python
-  log.debug('Updating state...')
+  log.log(0, 'Updating state...')
 #+END_SRC
 
 Check for changes in button state.  This logic should allow the system
 to manage a toggle on/off button for the system state using the
 momentary latch provided by the button.
 #+BEGIN_SRC python
-  if gu.read_pin(pins['Button in']):
-      if not state.button_depressed:
-          log.debug('Caught button state change.')
-          state.button_depressed = True
-  else:
-      state.button_depressed = False
+  state.button_depressed = gu.read_pin(pins['Button in'])
+  
+  if state.button_depressed is not state.button_depressed_old:
+      state.button_depressed_old = state.button_depressed
+      if state.button_depressed:
+          <<toggle state>>
 #+END_SRC
 
 Check for any input from the PIR.  If motion is detected, set the
@@ -273,7 +278,7 @@ expanded here for clarity.)
 #+END_SRC
 
 #+BEGIN_SRC python
-  log.debug('Updating state... Done.')
+  log.log(0, 'Updating state... Done.')
 #+END_SRC
 
 * On/Off System Toggling
@@ -310,10 +315,11 @@ expanded here for clarity.)
   console = logging.StreamHandler()
   console.setLevel(logging.INFO)
   console.setFormatter(logging.Formatter('%(levelname)-8s: %(message)s'))
-  logging.getLogger('').addHandler(console)
   
   log = logging.getLogger('')
+  log.addHandler(console)
   log.setLevel(logging.DEBUG)
+  log.propagate = False
 #+END_SRC
 
 * Appendix
@@ -324,7 +330,8 @@ expanded here for clarity.)
 *** Dependencies
 #+BEGIN_SRC python
   import RPi.GPIO
-  <<setup logging>>
+  import logging
+  log = logging.getLogger('')
 #+END_SRC
 *** Define =Pin= Class
 #+BEGIN_SRC python
@@ -367,7 +374,8 @@ expanded here for clarity.)
 *** Setup Loop
 #+BEGIN_SRC python
   def setup_all(pins):
-      for pin in pins.values():
+      log.info('Running initial setup...')
+      for pin in sorted(pins.values(), key=lambda p: p.number):
           if pin.number in [Pin.VOLT, Pin.GROUND]:
               continue
   
@@ -376,12 +384,14 @@ expanded here for clarity.)
           if pin.mode is RPi.GPIO.IN:
               assert pin.state is None
   
-          print 'Running initial setup...'
-          print '\tPin {} is {}'.format(pin.number, 'IN' if pin.mode is RPi.GPIO.IN else 'OUT')
+          log.info('Pin {} is {} ({})'.format(pin.number,
+                                         'IN' if pin.mode is RPi.GPIO.IN else 'OUT',
+                                         pin.pud))
           RPi.GPIO.setup(pin.number, pin.mode, pull_up_down=pin.pud)
           if pin.mode is RPi.GPIO.OUT:
-              print '\t\tSetting to {}'.format('HIGH' if pin.state is RPi.GPIO.HIGH else 'LOW')
+              log.debug('Setting to {}'.format('HIGH' if pin.state is RPi.GPIO.HIGH else 'LOW'))
               RPi.GPIO.output(pin.number, pin.state)
+      log.info('Running initial setup... Done.')
 #+END_SRC
 * Resources
 - [[http://elinux.org/RPi_Low-level_peripherals][Pin Map]]

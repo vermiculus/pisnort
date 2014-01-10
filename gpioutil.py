@@ -1,18 +1,7 @@
 
 import RPi.GPIO
 import logging
-
-logging.basicConfig(
-    filename='log',
-    format='%(asctime)s (%(name)s) [%(funcName)s] %(levelname)s: %(message)s'
-)
-console = logging.StreamHandler()
-console.setLevel(logging.INFO)
-console.setFormatter(logging.Formatter('%(levelname)-8s: %(message)s'))
-logging.getLogger('').addHandler(console)
-
 log = logging.getLogger('')
-log.setLevel(logging.DEBUG)
 
 class Pin:
     VOLT = 1
@@ -45,7 +34,8 @@ def toggle(pin):
         log.critical('What happened?  Pin %d is neither HIGH nor LOW.', pin.number)
 
 def setup_all(pins):
-    for pin in pins.values():
+    log.info('Running initial setup...')
+    for pin in sorted(pins.values(), key=lambda p: p.number):
         if pin.number in [Pin.VOLT, Pin.GROUND]:
             continue
 
@@ -54,9 +44,11 @@ def setup_all(pins):
         if pin.mode is RPi.GPIO.IN:
             assert pin.state is None
 
-        print 'Running initial setup...'
-        print '\tPin {} is {}'.format(pin.number, 'IN' if pin.mode is RPi.GPIO.IN else 'OUT')
+        log.info('Pin {} is {} ({})'.format(pin.number,
+                                       'IN' if pin.mode is RPi.GPIO.IN else 'OUT',
+                                       pin.pud))
         RPi.GPIO.setup(pin.number, pin.mode, pull_up_down=pin.pud)
         if pin.mode is RPi.GPIO.OUT:
-            print '\t\tSetting to {}'.format('HIGH' if pin.state is RPi.GPIO.HIGH else 'LOW')
+            log.debug('Setting to {}'.format('HIGH' if pin.state is RPi.GPIO.HIGH else 'LOW'))
             RPi.GPIO.output(pin.number, pin.state)
+    log.info('Running initial setup... Done.')
