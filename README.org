@@ -5,23 +5,21 @@
 #+PROPERTY: noweb tangle
 
 * Introduction and Overview
-  :PROPERTIES:
-  :ID:       323E5699-2136-4258-AD30-2AD3361F4FA7
-  :END:
 #+BEGIN_SRC python :tangle "main.py" :shebang "#!/usr/bin/sudo python"
   import gpioutil as gu
   import RPi.GPIO as gpio
-  import subprocess               # For playing sound files
   import random                   # For randomizing sound files
   import time                     # To delay sound playing
-  import logging
-
+  
   <<setup logging>>
   
   <<sound-playing logic>>
   
+  <<process management>>
+
+  <<handle exit logic>>
+  
   if __name__ == '__main__':
-      log = logging.getLogger('root')
       log.info('Execution started.')
   
       print 'Welcome to PiSnort!'
@@ -38,13 +36,55 @@
           while True:
               <<run loop>>
       except KeyboardInterrupt:
-          log.info('Process ended with C-c C-c.')
           print '\n\nCaught SIGINT'
-      finally:
-          print 'Exiting.'
-          log.info('Cleaning up GPIO...')
-          gpio.cleanup()
-          log.info('Cleaning up GPIO... Done.')
+          log.info('Process ended with C-c.')
+  
+      print 'Exiting.'
+      log.info('Cleaning up GPIO...')
+      gpio.cleanup()
+      log.info('Cleaning up GPIO... Done.')
+#+END_SRC
+
+* Exit Logic
+:PROPERTIES:
+:noweb-ref: handle exit logic
+:END:
+#+BEGIN_SRC python
+  import atexit
+  atexit.register(kill_child_processes)
+#+END_SRC
+
+* Process Management
+:PROPERTIES:
+:noweb-ref: process management
+:END:
+#+BEGIN_SRC python
+  import subprocess
+  
+  global child_processes
+  child_processes = set()
+  
+  def start_process(cmd):
+      child = subprocess.Popen(cmd)
+      child_processes.add(child)
+  
+  def gc_processes():
+      for child in list(child_processes):
+          child.poll()
+          if child.returncode is not None:
+              log.debug('Removing process %d from the set.')
+              child_processes.remove(child)
+              if child.returncode is not 0:
+                  log.error('Process %d ended abnormally; exit code %d', child.pid, child.returncode)
+  
+  def kill_child_processes():
+      gc_processes()
+      for child in child_processes:
+          try:
+              log.info('Forcing process %d to exit', child.pid)
+              child.terminate()
+          except:
+              log.error('Unable to kill child process %d', pid)
 #+END_SRC
 
 * The Meat
@@ -56,12 +96,12 @@ the file, then wait another five minutes to avoid a double alarm.
 #+BEGIN_SRC python
   <<choose a random sound file to play>>
   log.info('Waiting ten seconds to play sound.')
-  time.sleep(10)
+  time.sleep(5)
 
   play_sound(soundfile)
 
   log.info('Waiting five minutes to continue execution')
-  time.sleep(600)
+  time.sleep(10)
 #+END_SRC
 
 ** Choosing a Random Sound to Play
@@ -69,7 +109,7 @@ the file, then wait another five minutes to avoid a double alarm.
 :noweb-ref: choose a random sound file to play
 :END:
 #+BEGIN_SRC python
-  choices = [key for key in snorts if bool(snorts[key][0])]
+  choices = ['recordings/'+key for key in snorts if bool(snorts[key][0])]
   soundfile = random.choice(choices)
 #+END_SRC
 
@@ -90,11 +130,11 @@ circuit.  Refer to the Fritzing diagram if you're unsure.
   
   pins = {
       'LED power':    gu.Pin(4,           gpio.OUT, gpio.LOW),
-      'PIR power':    gu.Pin(gu.Pin.VOLT, gpio.OUT, gpio.HIGH),
-      'Button power': gu.Pin(gu.Pin.VOLT, gpio.OUT, gpio.HIGH),
-      'PIR Signal':   gu.Pin(2,           gpio.IN),
-      'Button in':    gu.Pin(8,           gpio.IN),
-      'Button out':   gu.Pin(7,           gpio.IN)
+      'PIR power':    gu.Pin(gu.Pin.VOLT, gpio.OUT),
+      'Button power': gu.Pin(gu.Pin.VOLT, gpio.OUT),
+      'PIR Signal':   gu.Pin(2,           gpio.IN,  pud=gpio.PUD_DOWN),
+      'Button in':    gu.Pin(8,           gpio.IN,  pud=gpio.PUD_DOWN),
+      'Button out':   gu.Pin(7,           gpio.IN,  pud=gpio.PUD_DOWN)
     }
   
   gu.setup_all(pins)
@@ -183,8 +223,8 @@ ensure that your speaker is hooked up to the Pi over 3.5mm.
 #+BEGIN_SRC python
   def play_sound(relative_path):
       log = logging.getLogger('sounds')
-      log.info('Playing sound: %s', relative_path)
-      subprocess.call(['aplay',  'sounds/{!s}'.format(relative_path)])
+      log.info('Playing sound: "%s"', relative_path)
+      start_process(['aplay', '--quiet', 'sounds/{!s}'.format(relative_path)])
 #+END_SRC
 
 * Keeping State
@@ -194,11 +234,11 @@ ensure that your speaker is hooked up to the Pi over 3.5mm.
 #+BEGIN_SRC python 
   class State: pass
   state=State()
-  state.testing = True
-  state.on = False
-  state.led_on = True
-  state.button_depressed = False
-  state.motion_detected = False
+  state.testing               = True
+  state.on                    = False
+  state.button_depressed      = False
+  state.button_depressed__old = True
+  state.motion_detected       = False
 #+END_SRC
 
 * Reading a New State
@@ -225,7 +265,7 @@ Check for any input from the PIR.  If motion is detected, set the
 appropriate flag.  (This can easily be collapsed to one line, but is
 expanded here for clarity.)
 #+BEGIN_SRC python
-  if gu.read_pin(pins['PIR Signal']):
+  if not gu.read_pin(pins['PIR Signal']):
       log.info('Motion detected!')
       state.motion_detected = True
   else:
@@ -259,81 +299,47 @@ expanded here for clarity.)
 * Logging
 :PROPERTIES:
 :noweb-ref: setup logging
-:ID:       D29AE728-7504-4E9D-86F5-A9E0AB16DBDC
 :END:
 #+BEGIN_SRC python
-  import logging.config
-  logging.config.fileConfig('logging.conf')
+  import logging
+  
+  logging.basicConfig(
+      filename='log',
+      format='%(asctime)s (%(name)s) [%(funcName)s] %(levelname)s: %(message)s'
+  )
+  console = logging.StreamHandler()
+  console.setLevel(logging.INFO)
+  console.setFormatter(logging.Formatter('%(levelname)-8s: %(message)s'))
+  logging.getLogger('').addHandler(console)
+  
+  log = logging.getLogger('')
+  log.setLevel(logging.DEBUG)
 #+END_SRC
 
-#+BEGIN_SRC conf :tangle "logging.conf" :noweb-ref nil
-  [loggers]
-  keys=root,sounds
-  
-  [handlers]
-  keys=consoleHandler,fileHandler
-  
-  [formatters]
-  keys=simpleFormatter
-  
-  [logger_root]
-  level=DEBUG
-  handlers=consoleHandler
-  
-  [logger_sounds]
-  level=DEBUG
-  handlers=consoleHandler
-  qualname=sounds
-  propagate=0
-  
-  [handler_consoleHandler]
-  class=StreamHandler
-  level=DEBUG
-  formatter=simpleFormatter
-  args=(sys.stdout,)
-  
-  [handler_fileHandler]
-  class=FileHandler
-  level=INFO
-  formatter=simpleFormatter
-  args=('log.log',)
-  propogate=0
-  
-  [formatter_simpleFormatter]
-  format=%(asctime)s (%(name)s) - %(levelname)s: %(message)s
-#+END_SRC
 * Appendix
 ** GPIO Utility Functions
 :PROPERTIES:
 :tangle:   gpioutil.py
 :END:
 *** Dependencies
-:PROPERTIES:
-:ID:       E1A00A15-8596-4767-B7D6-8ACEB374375A
-:END:
 #+BEGIN_SRC python
   import RPi.GPIO
   <<setup logging>>
 #+END_SRC
 *** Define =Pin= Class
-:PROPERTIES:
-:ID:       8EF060AB-774C-445F-93DC-563694D980E4
-:END:
 #+BEGIN_SRC python
   class Pin:
       VOLT = 1
       GROUND = 0
-      def __init__(self, number, mode, state=None):
+      def __init__(self, number, mode, state=None, pud=RPi.GPIO.PUD_OFF):
           self.number = number
           self.mode = mode
           self.state = state
+          self.pud = pud
       def __int__(self):
           return self.number
 #+END_SRC
 *** Writing Pins
-:PROPERTIES:
-:ID:       458363F0-81F2-4B12-9854-5961696987E4
-:END:
 #+BEGIN_SRC python
   def set_pin(pin, state):
       assert pin.mode is RPi.GPIO.OUT
@@ -341,9 +347,6 @@ expanded here for clarity.)
       RPi.GPIO.output(pin.number, pin.state)
 #+END_SRC
 *** Reading Pins
-:PROPERTIES:
-:ID:       5FC5B406-9D0C-42B5-9CAF-62269A27D491
-:END:
 #+BEGIN_SRC python
   def read_pin(pin):
       assert pin.mode is RPi.GPIO.IN
@@ -351,9 +354,6 @@ expanded here for clarity.)
       return RPi.GPIO.input(pin.number)
 #+END_SRC
 *** Toggling Pins
-:PROPERTIES:
-:ID:       51113440-033A-4CA7-9AC1-3C6EA282AE23
-:END:
 #+BEGIN_SRC python
   def toggle(pin):
       assert pin.mode is RPi.GPIO.OUT
@@ -362,12 +362,9 @@ expanded here for clarity.)
       elif pin.state is RPi.GPIO.LOW:
           set_pin(pin, RPi.GPIO.HIGH)
       else:
-          raise Exception('What happened?  Pin {} is neither HIGH nor LOW.'.format(pin))
+          log.critical('What happened?  Pin %d is neither HIGH nor LOW.', pin.number)
 #+END_SRC
 *** Setup Loop
-:PROPERTIES:
-:ID:       C4EB5B4E-2CA6-4860-B2CF-8BA91964FF95
-:END:
 #+BEGIN_SRC python
   def setup_all(pins):
       for pin in pins.values():
@@ -381,7 +378,7 @@ expanded here for clarity.)
   
           print 'Running initial setup...'
           print '\tPin {} is {}'.format(pin.number, 'IN' if pin.mode is RPi.GPIO.IN else 'OUT')
-          RPi.GPIO.setup(pin.number, pin.mode)
+          RPi.GPIO.setup(pin.number, pin.mode, pull_up_down=pin.pud)
           if pin.mode is RPi.GPIO.OUT:
               print '\t\tSetting to {}'.format('HIGH' if pin.state is RPi.GPIO.HIGH else 'LOW')
               RPi.GPIO.output(pin.number, pin.state)
@@ -646,3 +643,7 @@ cooperate with Cornell University in asserting and available
 defenses.
 
 
+
+# Local Variables:
+# python-indent-offset: 4
+# End:
