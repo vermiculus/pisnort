@@ -2,21 +2,59 @@
 
 import gpioutil as gu
 import RPi.GPIO as gpio
-import subprocess               # For playing sound files
 import random                   # For randomizing sound files
 import time                     # To delay sound playing
+
 import logging
 
-import logging.config
-logging.config.fileConfig('logging.conf')
+logging.basicConfig(
+    filename='log',
+    format='%(asctime)s (%(name)s) [%(funcName)s] %(levelname)s: %(message)s'
+)
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+console.setFormatter(logging.Formatter('%(levelname)-8s: %(message)s'))
+logging.getLogger('').addHandler(console)
+
+log = logging.getLogger('')
+log.setLevel(logging.DEBUG)
 
 def play_sound(relative_path):
     log = logging.getLogger('sounds')
-    log.info('Playing sound: %s', relative_path)
-    subprocess.call(['aplay',  'sounds/{!s}'.format(relative_path)])
+    log.info('Playing sound: "%s"', relative_path)
+    start_process(['aplay', '--quiet', 'sounds/{!s}'.format(relative_path)])
+
+import subprocess
+
+global child_processes
+child_processes = set()
+
+def start_process(cmd):
+    child = subprocess.Popen(cmd)
+    child_processes.add(child)
+
+def gc_processes():
+    for child in list(child_processes):
+        child.poll()
+        if child.returncode is not None:
+            log.debug('Removing process %d from the set.')
+            child_processes.remove(child)
+            if child.returncode is not 0:
+                log.error('Process %d ended abnormally; exit code %d', child.pid, child.returncode)
+
+def kill_child_processes():
+    gc_processes()
+    for child in child_processes:
+        try:
+            log.info('Forcing process %d to exit', child.pid)
+            child.terminate()
+        except:
+            log.error('Unable to kill child process %d', pid)
+
+import atexit
+atexit.register(kill_child_processes)
 
 if __name__ == '__main__':
-    log = logging.getLogger('root')
     log.info('Execution started.')
 
     print 'Welcome to PiSnort!'
@@ -24,21 +62,21 @@ if __name__ == '__main__':
 
     class State: pass
     state=State()
-    state.testing = True
-    state.on = False
-    state.led_on = True
-    state.button_depressed = False
-    state.motion_detected = False
+    state.testing               = True
+    state.on                    = False
+    state.button_depressed      = False
+    state.button_depressed__old = True
+    state.motion_detected       = False
 
     gpio.setmode(gpio.BCM)
     
     pins = {
         'LED power':    gu.Pin(4,           gpio.OUT, gpio.LOW),
-        'PIR power':    gu.Pin(gu.Pin.VOLT, gpio.OUT, gpio.HIGH),
-        'Button power': gu.Pin(gu.Pin.VOLT, gpio.OUT, gpio.HIGH),
-        'PIR Signal':   gu.Pin(2,           gpio.IN),
-        'Button in':    gu.Pin(8,           gpio.IN),
-        'Button out':   gu.Pin(7,           gpio.IN)
+        'PIR power':    gu.Pin(gu.Pin.VOLT, gpio.OUT),
+        'Button power': gu.Pin(gu.Pin.VOLT, gpio.OUT),
+        'PIR Signal':   gu.Pin(2,           gpio.IN,  pud=gpio.PUD_DOWN),
+        'Button in':    gu.Pin(8,           gpio.IN,  pud=gpio.PUD_DOWN),
+        'Button out':   gu.Pin(7,           gpio.IN,  pud=gpio.PUD_DOWN)
       }
     
     gu.setup_all(pins)
@@ -63,7 +101,7 @@ if __name__ == '__main__':
                     state.button_depressed = True
             else:
                 state.button_depressed = False
-            if gu.read_pin(pins['PIR Signal']):
+            if not gu.read_pin(pins['PIR Signal']):
                 log.info('Motion detected!')
                 state.motion_detected = True
             else:
@@ -92,20 +130,20 @@ if __name__ == '__main__':
                 play_sound('system/diagnostic.wav')
                 state.testing = False
             elif state.on and state.motion_detected:
-                choices = [key for key in snorts if bool(snorts[key][0])]
+                choices = ['recordings/'+key for key in snorts if bool(snorts[key][0])]
                 soundfile = random.choice(choices)
                 log.info('Waiting ten seconds to play sound.')
-                time.sleep(10)
+                time.sleep(5)
                 
                 play_sound(soundfile)
                 
                 log.info('Waiting five minutes to continue execution')
-                time.sleep(600)
+                time.sleep(10)
     except KeyboardInterrupt:
-        log.info('Process ended with C-c C-c.')
         print '\n\nCaught SIGINT'
-    finally:
-        print 'Exiting.'
-        log.info('Cleaning up GPIO...')
-        gpio.cleanup()
-        log.info('Cleaning up GPIO... Done.')
+        log.info('Process ended with C-c.')
+
+    print 'Exiting.'
+    log.info('Cleaning up GPIO...')
+    gpio.cleanup()
+    log.info('Cleaning up GPIO... Done.')
