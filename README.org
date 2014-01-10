@@ -388,3 +388,261 @@ expanded here for clarity.)
 #+END_SRC
 * Resources
 - [[http://elinux.org/RPi_Low-level_peripherals][Pin Map]]
+- [[http://www.ladyada.net/learn/sensors/pir.html][Using a PIR]]
+* Licensing
+** Macauley Library
+- Resources :: recordings under =/sounds/recordings/=
+
+The recordings under =/sounds/recordings/= were released by the
+Macauley Library of Cornell University and are released under the
+following terms.  Refer to [[http://macaulaylibrary.org/terms-of-use][the website]] for the definitive license.
+
+*** List of Recordings
+**** =/sounds/recordings/??=
+- CommonName :: Coyote
+- Genus :: Canis
+- Species :: latrans
+- VocType :: barks
+- RecordingCount :: 125888
+- Comments :: Waller, Sara
+    
+**** =/sounds/recordings/??=
+- CommonName :: Eastern Gray Squirrel
+- Genus :: Sciurus
+- Species :: carolinensis
+- VocType :: call
+- RecordingCount :: 127048
+- Comments :: Little, Randolph S.
+    
+**** =/sounds/recordings/??=
+- CommonName :: Woodchuck
+- Genus :: Marmota
+- Species :: monax
+- VocType :: alarm call
+- RecordingCount :: 55370
+- Comments :: Gunn, William W. H.
+    
+**** =/sounds/recordings/??=
+- CommonName :: Coyote
+- Genus :: Canis
+- Species :: latrans
+- VocType :: barks
+- RecordingCount :: 50261
+- Comments :: Keller, Geoffrey A.
+    
+**** =/sounds/recordings/??=
+- CommonName :: White-tailed deer
+- Genus :: Odocoileus
+- Species :: virginianus
+- VocType :: snort
+- RecordingCount :: 131198
+- Comments :: Keller, Geoffrey A.
+    
+**** =/sounds/recordings/??=
+- CommonName :: White-tailed deer
+- Genus :: Odocoileus
+- Species :: virginianus
+- VocType :: snort
+- RecordingCount :: 120460
+- Comments :: Fischer, Martha J.
+    
+**** =/sounds/recordings/??=
+- CommonName :: Gray Wolf
+- Genus :: Canis
+- Species :: lupus
+- VocType :: call
+- RecordingCount :: 128377
+- Comments :: MacDonald, Stewart D.
+    
+**** =/sounds/recordings/??=
+- CommonName :: White-tailed deer
+- Genus :: Odocoileus
+- Species :: virginianus
+- VocType :: snort
+- RecordingCount :: 41832
+- Comments :: Evans, William R.
+    
+**** =/sounds/recordings/??=
+- CommonName :: White-tailed deer
+- Genus :: Odocoileus
+- Species :: virginianus
+- VocType :: snort
+- RecordingCount :: 52604
+- Comments :: Langtimm, Catherine A.
+    
+**** =/sounds/recordings/??=
+- CommonName :: Woodchuck
+- Genus :: Marmota
+- Species :: monax
+- VocType :: alarm call
+- RecordingCount :: 172798
+- Comments :: McGowan, Jay
+    
+**** =/sounds/recordings/??=
+- CommonName :: Cougar
+- Genus :: Puma
+- Species :: concolor
+- VocType :: call
+- RecordingCount :: 126382
+- Comments :: Priori, Andrea L.
+    
+**** =/sounds/recordings/??=
+- CommonName :: Eastern Gray Squirrel
+- Genus :: Sciurus
+- Species :: carolinensis
+- VocType :: call
+- RecordingCount :: 94227
+- Comments :: Hershberger, Wilbur L
+
+*** Macaulay Library Website Terms of Use
+By visiting, viewing and/or using this website, you are agreeing to
+these Terms of Use.
+
+This website (herein the "Website") and all materials displayed or
+accessible through it, including but not limited to, text,
+photographs, images, illustrations, audio and video, computer software
+and code (herein called the "Content") are protected by copyright and
+are owned by Cornell University, which includes the Macaulay Library
+(ML) and the Cornell Lab of Ornithology, its licensors or the party
+credited as the content provider.
+
+Subject to the provisions listed in this Terms of Use Agreement,
+visitors to the Website are permitted to:
+- View Content online.
+- Print Website pages for non-commercial, personal, educational, and
+  research uses provided that ML is properly cited as the source.
+- Retain copies of specimen record data in digital form for
+  non-commercial, personal, educational and research purposes provided
+  that ML is properly cited as the source.
+- Link to and share Website pages from third-party websites for
+  non-commercial, personal, educational and research purposes only
+  provided that ML is properly cited as the source.
+- Share Content for non-commercial, personal, educational and research
+  purposes provided that ML is properly cited as the source.
+
+
+Any other uses (including but not limited to commercial, promotional,
+or administrative uses), reproduction, alteration, modification,
+public performance or display, uploading or posting onto the internet,
+transmission, redistribution or any other exploitation of the Website
+or the Content, whether in whole or in part, are prohibited without
+prior written permission.
+
+**** Specimen Database Content 
+Content from the specimen database accessible through the Website must
+not be regarded as definitive or published. Distributional,
+ecological, taxonomic and other such data should be verified in
+consultation with ML curatorial staff. Sensitive data (e.g. locality
+data for threatened or endangered species) and some data records may
+be restricted from public access through the Website. Access to these
+data records may be requested in writing from appropriate curatorial
+staff.
+
+**** Links to the Website 
+You may create links to this website for non-commercial (personal,
+educational and research) purposes only. If you wish to solicit a
+business relationship with the ML or the Cornell Lab of Ornithology,
+you need explicit written permission. While ML encourages links to the
+Website [link to "how to cite/link" page], it reserves the right to
+prohibit or refuse to accept any link to the Website at any time. You
+agree to remove any link you may have to the Website upon the request
+of ML.
+
+**** Links From the Website 
+This website contains links to third-party sites (Third-Party
+Websites). ML provides these links only as a service and convenience
+to our visitors. We take no responsibility for the content at
+Third-Party Websites including, without limitation, any representation
+or warranty regarding the legality, accuracy, reliability,
+completeness, timeliness, or suitability of any content on any
+Third-Party Website. The link to them in no way implies an endorsement
+or recommendation of the products, services or information found
+there. ML reserves the right to regularly review and re-evaluate any
+and all links originating from within the Website and reserves the
+right to terminate any link to Third-Party Websites without prior
+notification.
+
+**** Sharing of the Content (embedding) 
+- By using the embed code to display audio and video Content from the
+  Website the Embeddable Content on Third-Party Websites, you agree to
+  be bound by the following terms:
+- Subject to the Terms of Use for the Website, ML grants you a
+  non-exclusive, non-transferable license to use the embeddable
+  computer code to display the Embeddable Content on Third-Party
+  Websites. You may not copy, re-publish, edit, alter, add to or use
+  the Embeddable Content, embed code or embeddable player in any other
+  way.
+- All title, ownership rights and intellectual property rights in and
+  to the Embeddable Content, and any code made available by ML to
+  embed the Embeddable Content and the embeddable player shall remain
+  the property of ML and/or its licensors.
+- The Embeddable Content is subject to same terms and conditions
+  described in the "Links to the Website" section above.
+- The Embeddable Content is for personal use only and cannot be used
+  in any commercial way. You may not charge visitors any fee for
+  accessing the Embeddable Content, use the Embeddable Content as
+  means to secure advertising, or commercialize the Embeddable Content
+  or embeddable player in any other way.
+- You must properly attribute and create a link back to the ML website
+  on the pages of the Third-Party Websites where the Embeddable
+  Content is displayed.
+- You may not directly or indirectly suggest any endorsement or
+  approval by ML of the Third-Party Sites displaying the Embeddable
+  Content or any non-ML entity, product or content or any views
+  expressed within Third-Party Sites without the ML's prior written
+  approval.
+- You may not use the Embeddable Content in any way that could bring
+  the ML into disrepute or otherwise cause any loss or damage to the
+  ML.
+- You acknowledge that ML has sole editorial control over the
+  Embeddable Content at all times and it may change or restrict,
+  suspend or terminate any or all Embeddable Content or your access to
+  the Embeddable Content at any time at its sole discretion without
+  liability.
+- You acknowledge that the Embeddable Content is made available by ML
+  on an "as is" and "as available" basis and ML gives no warranty of
+  any kind in relation to the Embeddable Content, embed code or the
+  embeddable player.
+
+**** Disclaimer of warranties 
+- The Website and all Content are provided "as is" for informational
+  purposes only. By accessing and using the Website you acknowledge
+  and agree that use of the Website and Content is entirely at your
+  own risk. Where use of the Content is critical to scientific
+  investigation, scholarly publication, or policy decisions, you are
+  responsible for verifying the Content against primary data
+  sources. Although ML applies the highest standards to Website
+  performance, security, and data quality, ML makes no representations
+  or warranties regarding the Website and Content, including, without
+  limitation, no representation or warranty that:
+- the Website and/or content will be accurate, complete, reliable,
+  suitable or timely;
+- any the Content, software, product or service made available through
+  the Website will be of suitable for any particular purpose;
+- the operation of the Website will be uninterrupted or error free;
+- defects or errors in the Website will be corrected;
+- the Website will be free from viruses or harmful components; and
+  that
+- communications to or from the Website will be secure or not
+  intercepted.
+
+**** Modifications to Terms of Use
+ML reserves the right to modify the content of these terms of use at
+any time and it is your responsibility to consult the terms of use on
+a regular basis to determine whether any modifications have been
+made. By using the Website, you agree to all terms and conditions. Use
+of the Website after such changes are posted will signify your
+agreement to these revised terms.
+
+**** Indemnification
+You agree to indemnify, defend, and hold harmless Cornell University;
+its officers, directors, employees, agents, licensors, and third party
+providers to the Website from and against all losses, expenses,
+damages, and costs, including reasonable attorneys' fees, resulting
+from any violation of these Terms. Cornell University reserves the
+right to assume the exclusive defense and control of any matter
+subject to indemnification by you, in which event you will fully
+cooperate with Cornell University in asserting and available
+defenses.
+
+
