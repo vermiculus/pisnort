@@ -328,12 +328,18 @@ expanded here for clarity.)
 :tangle:   gpioutil.py
 :END:
 *** Dependencies
+    :PROPERTIES:
+    :ID:       8065a793-971f-4f3d-9c4b-597f8b9bc112
+    :END:
 #+BEGIN_SRC python
   import RPi.GPIO
   import logging
   log = logging.getLogger('')
 #+END_SRC
 *** Define =Pin= Class
+    :PROPERTIES:
+    :ID:       f11f3225-6137-4f36-a090-76a72d94a148
+    :END:
 #+BEGIN_SRC python
   class Pin:
       VOLT = 1
@@ -347,6 +353,9 @@ expanded here for clarity.)
           return self.number
 #+END_SRC
 *** Writing Pins
+    :PROPERTIES:
+    :ID:       59d69f00-7cca-47f5-8ed0-322720af4243
+    :END:
 #+BEGIN_SRC python
   def set_pin(pin, state):
       assert pin.mode is RPi.GPIO.OUT
@@ -354,6 +363,9 @@ expanded here for clarity.)
       RPi.GPIO.output(pin.number, pin.state)
 #+END_SRC
 *** Reading Pins
+    :PROPERTIES:
+    :ID:       eb47ab73-eeb3-492b-9025-df775818e56f
+    :END:
 #+BEGIN_SRC python
   def read_pin(pin):
       assert pin.mode is RPi.GPIO.IN
@@ -361,6 +373,9 @@ expanded here for clarity.)
       return RPi.GPIO.input(pin.number)
 #+END_SRC
 *** Toggling Pins
+    :PROPERTIES:
+    :ID:       491f0d8c-50e8-4a16-8f2f-c3754d5a6450
+    :END:
 #+BEGIN_SRC python
   def toggle(pin):
       assert pin.mode is RPi.GPIO.OUT
@@ -372,6 +387,9 @@ expanded here for clarity.)
           log.critical('What happened?  Pin %d is neither HIGH nor LOW.', pin.number)
 #+END_SRC
 *** Setup Loop
+    :PROPERTIES:
+    :ID:       b975a3b8-86da-45af-b441-f0972b32c1f0
+    :END:
 #+BEGIN_SRC python
   def setup_all(pins):
       log.info('Running initial setup...')
