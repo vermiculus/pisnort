@@ -5,8 +5,10 @@
 #+PROPERTY: noweb tangle
 
 * Introduction and Overview
+  :PROPERTIES:
+  :ID:       5b321547-1d36-4bba-9dfe-8ca4145274e7
+  :END:
 #+BEGIN_SRC python :tangle "main.py" :shebang "#!/usr/bin/sudo python"
-  import gpioutil as gu
   import RPi.GPIO as gpio
   import random                   # For randomizing sound files
   import time                     # To delay sound playing
@@ -130,18 +132,20 @@ These are all of the pins used in the circuitry.  Explicit ground
 wires are not listed; if something is missing, just complete the
 circuit.  Refer to the Fritzing diagram if you're unsure.
 #+BEGIN_SRC python
-  gpio.setmode(gpio.BCM)
+  gpio.setmode(gpio.BOARD)
   
-  pins = {
-      'LED power':    gu.Pin(4,           gpio.OUT, gpio.LOW),
-      'PIR power':    gu.Pin(gu.Pin.VOLT, gpio.OUT),
-      'Button power': gu.Pin(gu.Pin.VOLT, gpio.OUT),
-      'PIR Signal':   gu.Pin(2,           gpio.IN,  pud=gpio.PUD_DOWN),
-      'Button in':    gu.Pin(8,           gpio.IN,  pud=gpio.PUD_DOWN),
-      'Button out':   gu.Pin(7,           gpio.IN,  pud=gpio.PUD_DOWN)
-    }
+  pin_led = 7
+  pin_pir = 11
+  pin_btn_no = 24
+  pin_btn_nc = 26
   
-  gu.setup_all(pins)
+  gpio.setup(pin_led   , gpio.OUT, initial=gpio.LOW)
+  gpio.setup(pin_pir   , gpio.IN , gpio.PUD_DOWN)
+  gpio.setup(pin_btn_no, gpio.IN , gpio.PUD_DOWN)
+  gpio.setup(pin_btn_no, gpio.IN , gpio.PUD_DOWN)
+  
+  for p in [pin_led, pin_pir, pin_btn_no, pin_btn_nc]:
+      log.debug('Setup pin %d for function %s', p, gpio.gpio_function(p))
 #+END_SRC
 
 * Define Recording Locations
@@ -186,7 +190,8 @@ Press once and the device should turn on.  Press once more and the
 device should turn off.
 #+BEGIN_SRC python
   if state.button_depressed:
-      pass#<<toggle state>>
+      pass
+      # <<toggle state>>
 #+END_SRC
 It should be noted that the device won't /actually/ turn off; it will
 merely stop looking for motion.
@@ -200,7 +205,7 @@ to play and then play it.
   if state.testing:
       <<testing logic>>
       state.testing = False
-  elif state.on and state.motion_detected:
+  elif gpio.input(pin_led) and state.motion_detected:
       <<play a random sound file>>
 #+END_SRC
 
@@ -212,8 +217,8 @@ Toggle the LED ten times, waiting a second between each.
 #+BEGIN_SRC python
   log.info('Running diagnostic...')
   for i in range(4):
-      log.debug('Toggling LED on pin {}'.format(pins['LED power'].number))
-      gu.toggle(pins['LED power'])
+      log.debug('Toggling LED on pin {}'.format(pin_led))
+      gpio.output(pin_led, not gpio.input(pin_led))
       time.sleep(1)
   play_sound('system/diagnostic.wav')
   log.info('Running diagnostic... Done')
@@ -240,7 +245,6 @@ ensure that your speaker is hooked up to the Pi over 3.5mm.
   class State: pass
   state=State()
   state.testing              = True
-  state.on                   = False
   state.button_depressed     = False
   state.button_depressed_old = True
   state.motion_detected      = False
@@ -258,7 +262,7 @@ Check for changes in button state.  This logic should allow the system
 to manage a toggle on/off button for the system state using the
 momentary latch provided by the button.
 #+BEGIN_SRC python
-  state.button_depressed = gu.read_pin(pins['Button in'])
+  state.button_depressed = gpio.input(pin_btn_no)
   
   if state.button_depressed is not state.button_depressed_old:
       state.button_depressed_old = state.button_depressed
@@ -270,7 +274,7 @@ Check for any input from the PIR.  If motion is detected, set the
 appropriate flag.  (This can easily be collapsed to one line, but is
 expanded here for clarity.)
 #+BEGIN_SRC python
-  if not gu.read_pin(pins['PIR Signal']):
+  if gpio.input(pin_pir):
       log.info('Motion detected!')
       state.motion_detected = True
   else:
@@ -288,16 +292,14 @@ expanded here for clarity.)
 #+BEGIN_SRC python
   log.debug('Toggling state...')
     
-  if state.on:
+  if gpio.input(pin_led):
       log.debug('Turning LED OFF')
-      gu.set_pin(pins['LED power'], gpio.LOW)
       play_sound('system/deactivate.wav')
   else:
       log.debug('Turning LED ON')
-      gu.set_pin(pins['LED power'], gpio.HIGH)
       play_sound('system/activate.wav')
     
-  state.on = not state.on
+  gpio.output(pin_led, not gpio.input(pin_led))
   log.debug('Toggling state... Done.')
 #+END_SRC
 
@@ -319,98 +321,8 @@ expanded here for clarity.)
   log = logging.getLogger('')
   log.addHandler(console)
   log.setLevel(logging.DEBUG)
-  log.propagate = False
 #+END_SRC
 
-* Appendix
-** GPIO Utility Functions
-:PROPERTIES:
-:tangle:   gpioutil.py
-:END:
-*** Dependencies
-    :PROPERTIES:
-    :ID:       8065a793-971f-4f3d-9c4b-597f8b9bc112
-    :END:
-#+BEGIN_SRC python
-  import RPi.GPIO
-  import logging
-  log = logging.getLogger('')
-#+END_SRC
-*** Define =Pin= Class
-    :PROPERTIES:
-    :ID:       f11f3225-6137-4f36-a090-76a72d94a148
-    :END:
-#+BEGIN_SRC python
-  class Pin:
-      VOLT = 1
-      GROUND = 0
-      def __init__(self, number, mode, state=None, pud=RPi.GPIO.PUD_OFF):
-          self.number = number
-          self.mode = mode
-          self.state = state
-          self.pud = pud
-      def __int__(self):
-          return self.number
-#+END_SRC
-*** Writing Pins
-    :PROPERTIES:
-    :ID:       59d69f00-7cca-47f5-8ed0-322720af4243
-    :END:
-#+BEGIN_SRC python
-  def set_pin(pin, state):
-      assert pin.mode is RPi.GPIO.OUT
-      pin.state = state
-      RPi.GPIO.output(pin.number, pin.state)
-#+END_SRC
-*** Reading Pins
-    :PROPERTIES:
-    :ID:       eb47ab73-eeb3-492b-9025-df775818e56f
-    :END:
-#+BEGIN_SRC python
-  def read_pin(pin):
-      assert pin.mode is RPi.GPIO.IN
-  
-      return RPi.GPIO.input(pin.number)
-#+END_SRC
-*** Toggling Pins
-    :PROPERTIES:
-    :ID:       491f0d8c-50e8-4a16-8f2f-c3754d5a6450
-    :END:
-#+BEGIN_SRC python
-  def toggle(pin):
-      assert pin.mode is RPi.GPIO.OUT
-      if pin.state is RPi.GPIO.HIGH:
-          set_pin(pin, RPi.GPIO.LOW)
-      elif pin.state is RPi.GPIO.LOW:
-          set_pin(pin, RPi.GPIO.HIGH)
-      else:
-          log.critical('What happened?  Pin %d is neither HIGH nor LOW.', pin.number)
-#+END_SRC
-*** Setup Loop
-    :PROPERTIES:
-    :ID:       b975a3b8-86da-45af-b441-f0972b32c1f0
-    :END:
-#+BEGIN_SRC python
-  def setup_all(pins):
-      log.info('Running initial setup...')
-      for pin in sorted(pins.values(), key=lambda p: p.number):
-          if pin.number in [Pin.VOLT, Pin.GROUND]:
-              continue
-  
-          assert pin.mode in [RPi.GPIO.IN, RPi.GPIO.OUT]
-          assert pin.state in [RPi.GPIO.HIGH, RPi.GPIO.LOW, None]
-          if pin.mode is RPi.GPIO.IN:
-              assert pin.state is None
-  
-          log.info('Pin {} is {} ({})'.format(pin.number,
-                                         'IN' if pin.mode is RPi.GPIO.IN else 'OUT',
-                                         pin.pud))
-          RPi.GPIO.setup(pin.number, pin.mode, pull_up_down=pin.pud)
-          if pin.mode is RPi.GPIO.OUT:
-              log.debug('Setting to {}'.format('HIGH' if pin.state is RPi.GPIO.HIGH else 'LOW'))
-              RPi.GPIO.output(pin.number, pin.state)
-      log.info('Running initial setup... Done.')
-#+END_SRC
 * Resources
 - [[http://elinux.org/RPi_Low-level_peripherals][Pin Map]]
 - [[http://www.ladyada.net/learn/sensors/pir.html][Using a PIR]]
