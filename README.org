@@ -12,34 +12,34 @@
   import RPi.GPIO as gpio
   import random                   # For randomizing sound files
   import time                     # To delay sound playing
-  
+
   <<setup logging>>
-  
+
   <<sound-playing logic>>
-  
+
   <<process management>>
-  
+
   <<handle exit logic>>
-  
+
   if __name__ == '__main__':
       log.info('Execution started.')
-  
+
       print 'Welcome to PiSnort!'
       play_sound('system/welcome.wav')
-  
+
       <<define state>>
-  
+
       <<define pins>>
-  
+
       <<define sounds>>
-    
+
       log.info('Beginning main loop.')
       try:
           while True:
               <<run loop>>
       except KeyboardInterrupt:
           log.info('Process ended with C-c.')
-  
+
       log.info('Cleaning up GPIO...')
       gpio.cleanup()
       log.info('Cleaning up GPIO... Done.')
@@ -62,15 +62,15 @@
 :END:
 #+BEGIN_SRC python
   import subprocess
-  
+
   global child_processes
   child_processes = set()
-  
+
   def start_process(cmd, purpose=None):
       child = subprocess.Popen(cmd)
       child.snort_purpose = purpose
       child_processes.add(child)
-  
+
   def gc_processes():
       for child in list(child_processes):
           child.poll()
@@ -82,7 +82,7 @@
                             child.pid,
                             child.returncode,
                             child.snort_purpose)
-  
+
   def kill_child_processes():
       gc_processes()
       for child in child_processes:
@@ -133,17 +133,17 @@ wires are not listed; if something is missing, just complete the
 circuit.  Refer to the Fritzing diagram if you're unsure.
 #+BEGIN_SRC python
   gpio.setmode(gpio.BOARD)
-  
+
   pin_led = 7
   pin_pir = 11
   pin_btn_no = 24
   pin_btn_nc = 26
-  
+
   gpio.setup(pin_led   , gpio.OUT, initial=gpio.LOW)
   gpio.setup(pin_pir   , gpio.IN , gpio.PUD_DOWN)
   gpio.setup(pin_btn_no, gpio.IN , gpio.PUD_DOWN)
   gpio.setup(pin_btn_no, gpio.IN , gpio.PUD_DOWN)
-  
+
   for p in [pin_led, pin_pir, pin_btn_no, pin_btn_nc]:
       log.debug('Setup pin %d for function %s', p, gpio.gpio_function(p))
 #+END_SRC
@@ -241,7 +241,7 @@ ensure that your speaker is hooked up to the Pi over 3.5mm.
 :PROPERTIES:
 :noweb-ref: define state
 :END:
-#+BEGIN_SRC python 
+#+BEGIN_SRC python
   class State: pass
   state=State()
   state.testing              = True
@@ -263,7 +263,7 @@ to manage a toggle on/off button for the system state using the
 momentary latch provided by the button.
 #+BEGIN_SRC python
   state.button_depressed = gpio.input(pin_btn_no)
-  
+
   if state.button_depressed is not state.button_depressed_old:
       state.button_depressed_old = state.button_depressed
       if state.button_depressed:
@@ -291,15 +291,16 @@ expanded here for clarity.)
 :END:
 #+BEGIN_SRC python
   log.debug('Toggling state...')
-    
+
   if gpio.input(pin_led):
       log.debug('Turning LED OFF')
       play_sound('system/deactivate.wav')
   else:
       log.debug('Turning LED ON')
       play_sound('system/activate.wav')
-    
+
   gpio.output(pin_led, not gpio.input(pin_led))
+
   log.debug('Toggling state... Done.')
 #+END_SRC
 
@@ -309,7 +310,7 @@ expanded here for clarity.)
 :END:
 #+BEGIN_SRC python
   import logging
-  
+
   logging.basicConfig(
       filename='log',
       format='%(asctime)s (%(name)s) [%(funcName)s] %(levelname)s: %(message)s'
@@ -317,7 +318,7 @@ expanded here for clarity.)
   console = logging.StreamHandler()
   console.setLevel(logging.INFO)
   console.setFormatter(logging.Formatter('%(levelname)-8s: %(message)s'))
-  
+
   log = logging.getLogger('')
   log.addHandler(console)
   log.setLevel(logging.DEBUG)
@@ -342,7 +343,7 @@ following terms.  Refer to [[http://macaulaylibrary.org/terms-of-use][the websit
 - VocType :: barks
 - RecordingCount :: 125888
 - Comments :: Waller, Sara
-    
+
 **** =/sounds/recordings/??=
 - CommonName :: Eastern Gray Squirrel
 - Genus :: Sciurus
@@ -350,7 +351,7 @@ following terms.  Refer to [[http://macaulaylibrary.org/terms-of-use][the websit
 - VocType :: call
 - RecordingCount :: 127048
 - Comments :: Little, Randolph S.
-    
+
 **** =/sounds/recordings/??=
 - CommonName :: Woodchuck
 - Genus :: Marmota
@@ -358,7 +359,7 @@ following terms.  Refer to [[http://macaulaylibrary.org/terms-of-use][the websit
 - VocType :: alarm call
 - RecordingCount :: 55370
 - Comments :: Gunn, William W. H.
-    
+
 **** =/sounds/recordings/??=
 - CommonName :: Coyote
 - Genus :: Canis
@@ -366,7 +367,7 @@ following terms.  Refer to [[http://macaulaylibrary.org/terms-of-use][the websit
 - VocType :: barks
 - RecordingCount :: 50261
 - Comments :: Keller, Geoffrey A.
-    
+
 **** =/sounds/recordings/??=
 - CommonName :: White-tailed deer
 - Genus :: Odocoileus
@@ -374,7 +375,7 @@ following terms.  Refer to [[http://macaulaylibrary.org/terms-of-use][the websit
 - VocType :: snort
 - RecordingCount :: 131198
 - Comments :: Keller, Geoffrey A.
-    
+
 **** =/sounds/recordings/??=
 - CommonName :: White-tailed deer
 - Genus :: Odocoileus
@@ -382,7 +383,7 @@ following terms.  Refer to [[http://macaulaylibrary.org/terms-of-use][the websit
 - VocType :: snort
 - RecordingCount :: 120460
 - Comments :: Fischer, Martha J.
-    
+
 **** =/sounds/recordings/??=
 - CommonName :: Gray Wolf
 - Genus :: Canis
@@ -390,7 +391,7 @@ following terms.  Refer to [[http://macaulaylibrary.org/terms-of-use][the websit
 - VocType :: call
 - RecordingCount :: 128377
 - Comments :: MacDonald, Stewart D.
-    
+
 **** =/sounds/recordings/??=
 - CommonName :: White-tailed deer
 - Genus :: Odocoileus
@@ -398,7 +399,7 @@ following terms.  Refer to [[http://macaulaylibrary.org/terms-of-use][the websit
 - VocType :: snort
 - RecordingCount :: 41832
 - Comments :: Evans, William R.
-    
+
 **** =/sounds/recordings/??=
 - CommonName :: White-tailed deer
 - Genus :: Odocoileus
@@ -406,7 +407,7 @@ following terms.  Refer to [[http://macaulaylibrary.org/terms-of-use][the websit
 - VocType :: snort
 - RecordingCount :: 52604
 - Comments :: Langtimm, Catherine A.
-    
+
 **** =/sounds/recordings/??=
 - CommonName :: Woodchuck
 - Genus :: Marmota
@@ -414,7 +415,7 @@ following terms.  Refer to [[http://macaulaylibrary.org/terms-of-use][the websit
 - VocType :: alarm call
 - RecordingCount :: 172798
 - Comments :: McGowan, Jay
-    
+
 **** =/sounds/recordings/??=
 - CommonName :: Cougar
 - Genus :: Puma
@@ -422,7 +423,7 @@ following terms.  Refer to [[http://macaulaylibrary.org/terms-of-use][the websit
 - VocType :: call
 - RecordingCount :: 126382
 - Comments :: Priori, Andrea L.
-    
+
 **** =/sounds/recordings/??=
 - CommonName :: Eastern Gray Squirrel
 - Genus :: Sciurus
@@ -465,7 +466,7 @@ transmission, redistribution or any other exploitation of the Website
 or the Content, whether in whole or in part, are prohibited without
 prior written permission.
 
-**** Specimen Database Content 
+**** Specimen Database Content
 Content from the specimen database accessible through the Website must
 not be regarded as definitive or published. Distributional,
 ecological, taxonomic and other such data should be verified in
@@ -475,7 +476,7 @@ be restricted from public access through the Website. Access to these
 data records may be requested in writing from appropriate curatorial
 staff.
 
-**** Links to the Website 
+**** Links to the Website
 You may create links to this website for non-commercial (personal,
 educational and research) purposes only. If you wish to solicit a
 business relationship with the ML or the Cornell Lab of Ornithology,
@@ -485,7 +486,7 @@ prohibit or refuse to accept any link to the Website at any time. You
 agree to remove any link you may have to the Website upon the request
 of ML.
 
-**** Links From the Website 
+**** Links From the Website
 This website contains links to third-party sites (Third-Party
 Websites). ML provides these links only as a service and convenience
 to our visitors. We take no responsibility for the content at
@@ -499,7 +500,7 @@ and all links originating from within the Website and reserves the
 right to terminate any link to Third-Party Websites without prior
 notification.
 
-**** Sharing of the Content (embedding) 
+**** Sharing of the Content (embedding)
 - By using the embed code to display audio and video Content from the
   Website the Embeddable Content on Third-Party Websites, you agree to
   be bound by the following terms:
@@ -541,7 +542,7 @@ notification.
   any kind in relation to the Embeddable Content, embed code or the
   embeddable player.
 
-**** Disclaimer of warranties 
+**** Disclaimer of warranties
 - The Website and all Content are provided "as is" for informational
   purposes only. By accessing and using the Website you acknowledge
   and agree that use of the Website and Content is entirely at your
@@ -581,5 +582,3 @@ right to assume the exclusive defense and control of any matter
 subject to indemnification by you, in which event you will fully
 cooperate with Cornell University in asserting and available
 defenses.
-
-
