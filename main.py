@@ -11,7 +11,7 @@ logging.basicConfig(
     format='%(asctime)s (%(name)s) [%(funcName)s] %(levelname)s: %(message)s'
 )
 console = logging.StreamHandler()
-console.setLevel(logging.INFO)
+console.setLevel(logging.DEBUG)
 console.setFormatter(logging.Formatter('%(levelname)-8s: %(message)s'))
 
 log = logging.getLogger('')
@@ -21,7 +21,13 @@ log.setLevel(logging.DEBUG)
 def play_sound(relative_path):
     log = logging.getLogger('sounds')
     log.info('Playing sound: "%s"', relative_path)
-    start_process(['mplayer', '-msglevel', 'all=-1', 'sounds/{!s}'.format(relative_path)], 'Play sound {}'.format(relative_path))
+    return start_process(['mplayer',
+                          '-msglevel',
+                          'all=-1',
+                          'sounds/{!s}'\
+                              .format(relative_path)],
+                         'Play sound {}'\
+                             .format(relative_path))
 
 import subprocess
 
@@ -32,6 +38,7 @@ def start_process(cmd, purpose=None):
     child = subprocess.Popen(cmd)
     child.snort_purpose = purpose
     child_processes.add(child)
+    return child
 
 def gc_processes():
     for child in list(child_processes):
@@ -57,29 +64,36 @@ def kill_child_processes():
 import atexit
 atexit.register(kill_child_processes)
 atexit.register(logging.shutdown)
+atexit.register(gpio.cleanup)
+atexit.register(lambda:subprocess.call(['mplayer',
+                                        '--volume=100',
+                                        'sounds/system/deactivate.wav'],
+                                       stdout=open('/dev/null'),
+                                       stderr=open('/dev/null')))
 
 if __name__ == '__main__':
     log.info('Execution started.')
 
-    print 'Welcome to PiSnort!'
     play_sound('system/welcome.wav')
 
     class State: pass
     state=State()
-    state.testing              = True
+    state.testing              = False
     state.button_depressed     = False
     state.button_depressed_old = True
     state.motion_detected      = False
+    state.current_recording    = None
 
+    log.debug('Setting up GPIO')
     gpio.setmode(gpio.BOARD)
     
     pin_led = 7
-    pin_pir = 11
+    pin_pir = 12
     pin_btn_no = 24
     pin_btn_nc = 26
     
     gpio.setup(pin_led   , gpio.OUT, initial=gpio.LOW)
-    gpio.setup(pin_pir   , gpio.IN , gpio.PUD_DOWN)
+    gpio.setup(pin_pir   , gpio.IN)
     gpio.setup(pin_btn_no, gpio.IN , gpio.PUD_DOWN)
     gpio.setup(pin_btn_no, gpio.IN , gpio.PUD_DOWN)
     
@@ -94,7 +108,7 @@ if __name__ == '__main__':
               'recorded snort1-3.wav': ('some criterion'),
               'recorded snort1.wav':   ('some criterion'),
               'recorded snort2.wav':   ('some criterion')}
-  
+
     log.info('Beginning main loop.')
     try:
         while True:
@@ -106,35 +120,25 @@ if __name__ == '__main__':
                 state.button_depressed_old = state.button_depressed
                 if state.button_depressed:
                     log.debug('Toggling state...')
-                      
+                    
                     if gpio.input(pin_led):
                         log.debug('Turning LED OFF')
                         play_sound('system/deactivate.wav')
                     else:
                         log.debug('Turning LED ON')
                         play_sound('system/activate.wav')
-                      
+                    
                     gpio.output(pin_led, not gpio.input(pin_led))
+                    
                     log.debug('Toggling state... Done.')
-            if gpio.input(pin_pir):
-                log.info('Motion detected!')
+            log.debug(state.motion_detected)
+            if gpio.input(pin_pir) and state.motion_detected is False:
+                log.debug('Motion detected')
                 state.motion_detected = True
-            else:
+            if time.time() - state.motion_detected > 60:
+                log.debug('Motion terminated')
                 state.motion_detected = False
             log.log(0, 'Updating state... Done.')
-            if state.button_depressed:
-                pass
-                # log.debug('Toggling state...')
-                #   
-                # if gpio.input(pin_led):
-                #     log.debug('Turning LED OFF')
-                #     play_sound('system/deactivate.wav')
-                # else:
-                #     log.debug('Turning LED ON')
-                #     play_sound('system/activate.wav')
-                #   
-                # gpio.output(pin_led, not gpio.input(pin_led))
-                # log.debug('Toggling state... Done.')
             if state.testing:
                 log.info('Running diagnostic...')
                 for i in range(4):
@@ -144,20 +148,22 @@ if __name__ == '__main__':
                 play_sound('system/diagnostic.wav')
                 log.info('Running diagnostic... Done')
                 state.testing = False
-            elif gpio.input(pin_led) and state.motion_detected:
-                choices = ['recordings/'+key for key in snorts if bool(snorts[key][0])]
-                soundfile = random.choice(choices)
-                log.info('Waiting ten seconds to play sound.')
-                time.sleep(5)
-                
-                play_sound(soundfile)
-                
-                log.info('Waiting five minutes to continue execution')
-                time.sleep(10)
+            elif gpio.input(pin_led):
+                if state.motion_detected is True:
+                    state.motion_detected = time.time()
+                elif 40 < time.time() - state.motion_detected and state.current_recording is not None:
+                    state.current_recording = None
+                    gc_processes()
+                elif 20 < time.time() - state.motion_detected and state.current_recording is None:
+                    log.debug('Choosing a random sound file')
+                    choices = ['recordings/'+key for key in snorts if bool(snorts[key][0])]
+                    state.current_recording = random.choice(choices)
+                    log.debug('Playing the random sound file')
+                    play_sound(state.current_recording)
+            elif not gpio.input(pin_led):
+                gc_processes()
+            time.sleep(2)
     except KeyboardInterrupt:
         log.info('Process ended with C-c.')
 
-    log.info('Cleaning up GPIO...')
-    gpio.cleanup()
-    log.info('Cleaning up GPIO... Done.')
     log.info('Program exit.')

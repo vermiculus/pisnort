@@ -12,37 +12,34 @@
   import RPi.GPIO as gpio
   import random                   # For randomizing sound files
   import time                     # To delay sound playing
-
+  
   <<setup logging>>
-
+  
   <<sound-playing logic>>
-
+  
   <<process management>>
-
+  
   <<handle exit logic>>
-
+  
   if __name__ == '__main__':
       log.info('Execution started.')
-
-      print 'Welcome to PiSnort!'
+  
       play_sound('system/welcome.wav')
-
+  
       <<define state>>
-
+  
       <<define pins>>
-
+  
       <<define sounds>>
-
+  
       log.info('Beginning main loop.')
       try:
           while True:
               <<run loop>>
+              time.sleep(2)
       except KeyboardInterrupt:
           log.info('Process ended with C-c.')
-
-      log.info('Cleaning up GPIO...')
-      gpio.cleanup()
-      log.info('Cleaning up GPIO... Done.')
+  
       log.info('Program exit.')
 #+END_SRC
 
@@ -54,6 +51,12 @@
   import atexit
   atexit.register(kill_child_processes)
   atexit.register(logging.shutdown)
+  atexit.register(gpio.cleanup)
+  atexit.register(lambda:subprocess.call(['mplayer',
+                                          '--volume=100',
+                                          'sounds/system/deactivate.wav'],
+                                         stdout=open('/dev/null'),
+                                         stderr=open('/dev/null')))
 #+END_SRC
 
 * Process Management
@@ -70,6 +73,7 @@
       child = subprocess.Popen(cmd)
       child.snort_purpose = purpose
       child_processes.add(child)
+      return child
 
   def gc_processes():
       for child in list(child_processes):
@@ -97,17 +101,12 @@
 :PROPERTIES:
 :noweb-ref: play a random sound file
 :END:
-Choose a random sound file to play and then wait ten seconds.  Play
+Choose a random sound file to play and then wait twenty seconds.  Play
 the file, then wait another five minutes to avoid a double alarm.
 #+BEGIN_SRC python
   <<choose a random sound file to play>>
-  log.info('Waiting ten seconds to play sound.')
-  time.sleep(5)
-
-  play_sound(soundfile)
-
-  log.info('Waiting five minutes to continue execution')
-  time.sleep(10)
+  log.debug('Playing the random sound file')
+  play_sound(state.current_recording)
 #+END_SRC
 
 ** Choosing a Random Sound to Play
@@ -115,8 +114,9 @@ the file, then wait another five minutes to avoid a double alarm.
 :noweb-ref: choose a random sound file to play
 :END:
 #+BEGIN_SRC python
+  log.debug('Choosing a random sound file')
   choices = ['recordings/'+key for key in snorts if bool(snorts[key][0])]
-  soundfile = random.choice(choices)
+  state.current_recording = random.choice(choices)
 #+END_SRC
 
 ** TODO Implement lambda filtering of recordings
@@ -132,15 +132,16 @@ These are all of the pins used in the circuitry.  Explicit ground
 wires are not listed; if something is missing, just complete the
 circuit.  Refer to the Fritzing diagram if you're unsure.
 #+BEGIN_SRC python
+  log.debug('Setting up GPIO')
   gpio.setmode(gpio.BOARD)
 
   pin_led = 7
-  pin_pir = 11
+  pin_pir = 12
   pin_btn_no = 24
   pin_btn_nc = 26
 
   gpio.setup(pin_led   , gpio.OUT, initial=gpio.LOW)
-  gpio.setup(pin_pir   , gpio.IN , gpio.PUD_DOWN)
+  gpio.setup(pin_pir   , gpio.IN)
   gpio.setup(pin_btn_no, gpio.IN , gpio.PUD_DOWN)
   gpio.setup(pin_btn_no, gpio.IN , gpio.PUD_DOWN)
 
@@ -185,14 +186,6 @@ information.  This will intelligently update properties such as
   <<update state>>
 #+END_SRC
 
-If the button is depressed, we want to toggle the state of the device.
-Press once and the device should turn on.  Press once more and the
-device should turn off.
-#+BEGIN_SRC python
-  if state.button_depressed:
-      pass
-      # <<toggle state>>
-#+END_SRC
 It should be noted that the device won't /actually/ turn off; it will
 merely stop looking for motion.
 
@@ -205,8 +198,16 @@ to play and then play it.
   if state.testing:
       <<testing logic>>
       state.testing = False
-  elif gpio.input(pin_led) and state.motion_detected:
-      <<play a random sound file>>
+  elif gpio.input(pin_led):
+      if state.motion_detected is True:
+          state.motion_detected = time.time()
+      elif 40 < time.time() - state.motion_detected and state.current_recording is not None:
+          state.current_recording = None
+          gc_processes()
+      elif 20 < time.time() - state.motion_detected and state.current_recording is None:
+          <<play a random sound file>>
+  elif not gpio.input(pin_led):
+      gc_processes()
 #+END_SRC
 
 ** Testing Logic
@@ -223,6 +224,7 @@ Toggle the LED ten times, waiting a second between each.
   play_sound('system/diagnostic.wav')
   log.info('Running diagnostic... Done')
 #+END_SRC
+
 * Playing a Sound
 :PROPERTIES:
 :noweb-ref: sound-playing logic
@@ -234,7 +236,13 @@ ensure that your speaker is hooked up to the Pi over 3.5mm.
   def play_sound(relative_path):
       log = logging.getLogger('sounds')
       log.info('Playing sound: "%s"', relative_path)
-      start_process(['mplayer', '-msglevel', 'all=-1', 'sounds/{!s}'.format(relative_path)], 'Play sound {}'.format(relative_path))
+      return start_process(['mplayer',
+                            '-msglevel',
+                            'all=-1',
+                            'sounds/{!s}'\
+                                .format(relative_path)],
+                           'Play sound {}'\
+                               .format(relative_path))
 #+END_SRC
 
 * Keeping State
@@ -244,10 +252,11 @@ ensure that your speaker is hooked up to the Pi over 3.5mm.
 #+BEGIN_SRC python
   class State: pass
   state=State()
-  state.testing              = True
+  state.testing              = False
   state.button_depressed     = False
   state.button_depressed_old = True
   state.motion_detected      = False
+  state.current_recording    = None
 #+END_SRC
 
 * Reading a New State
@@ -271,13 +280,14 @@ momentary latch provided by the button.
 #+END_SRC
 
 Check for any input from the PIR.  If motion is detected, set the
-appropriate flag.  (This can easily be collapsed to one line, but is
-expanded here for clarity.)
+appropriate flag.  
 #+BEGIN_SRC python
-  if gpio.input(pin_pir):
-      log.info('Motion detected!')
+  log.debug(state.motion_detected)
+  if gpio.input(pin_pir) and state.motion_detected is False:
+      log.debug('Motion detected')
       state.motion_detected = True
-  else:
+  if time.time() - state.motion_detected > 60:
+      log.debug('Motion terminated')
       state.motion_detected = False
 #+END_SRC
 
@@ -316,7 +326,7 @@ expanded here for clarity.)
       format='%(asctime)s (%(name)s) [%(funcName)s] %(levelname)s: %(message)s'
   )
   console = logging.StreamHandler()
-  console.setLevel(logging.INFO)
+  console.setLevel(logging.DEBUG)
   console.setFormatter(logging.Formatter('%(levelname)-8s: %(message)s'))
 
   log = logging.getLogger('')
